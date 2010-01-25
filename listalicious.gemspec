@@ -26,6 +26,7 @@ Gem::Specification.new do |s|
      "lib/builders/generic_builder.rb",
      "lib/builders/table_builder.rb",
      "lib/listalicious.rb",
+     "listalicious.gemspec",
      "test/helper.rb",
      "test/test_listalicious.rb"
   ]
