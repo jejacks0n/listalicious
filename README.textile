@@ -175,13 +175,13 @@ It's also important to notice that the controls cell is not being counted in the
     <tbody>
       <tr class="even">
         <td>Jeremy Jackson</td>
-        <td class="email"><a href="mailto:jeremy@factorylabs.com">jeremy@factorylabs.com</a></td>
-        <td class="controls"><a href="/protosite/users/1/edit">edit</a></td>
+        <td class="email"><a href="mailto:jeremy@email.com">jeremy@email.com</a></td>
+        <td class="controls"><a href="/users/1/edit">edit</a></td>
       </tr>
       <tr class="odd">
         <td>User 1</td>
-        <td class="email"><a href="mailto:user1@protosite.com">user1@protosite.com</a></td>
-        <td class="controls"><a href="/protosite/users/2/edit">edit</a></td>
+        <td class="email"><a href="mailto:user1@email.com">user1@email.com</a></td>
+        <td class="controls"><a href="/users/2/edit">edit</a></td>
       </tr>
     </tbody>
     <tfoot>
