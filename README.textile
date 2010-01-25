@@ -104,7 +104,7 @@ h3. Views (I prefer HAML, so no ERB examples, but it should work with ERB fine a
   
 It's important to note that all the methods take blocks or content strings.  For instance, look at the extra and controls methods in the simple usage example.
 
-It's also important to notice that the controls cell is not being counted in the columns.  This is because I position these absolutely and do a hover event on them.. I'll likely take this out, and make a builder that had that that doesn't effect anyone else.. this is pre-release sort of stuff.
+It's also important to notice that the controls cell is not being counted in the columns.  This is because I position these absolutely and do a hover event on them.. I'll likely take this out shortly so it doesn't effect anyone else.
 
 *Simple Usage*
 
@@ -228,7 +228,7 @@ h3. Other
 
 It's important to note that a lot of the functionality of these lists do not play nicely with one another -- I don't believe this is a shortcoming, and consider it more an effort to avoid overkill.  A good example of this is the sortable features.  For example, if you need the extra information and sorting together, you should consider using the :expandable => true option.  Grouping and sorting don't play together nicely for obvious reasons as well.  The javascript handles moving the extra container, in sorting, but doesn't attempt to do it gracefully.  If I do the ListBuilder (UL/OL) to compliment the TableBuilder, it would likely handle these things somewhat better, but I haven't had a need for it yet.
 
-I'm kicking around plans for how to make it more featureful without the annoying conflicts mentioned above.  If you have any thoughts let me know, but I expect my solution will come in breaking up the builders by features.. So, instead of having a single TableBuilder, there would be a SortableTableBuilder, and an InformationalTableBuilder, and a MultiSelectTableBuilder, etc.. not sure how that would play out, but that's what I'm thinking might resolve some of the annoyances mentioned above.
+I'm kicking around plans for how to make it more featureful without the annoying conflicts mentioned above.  If you have any thoughts let me know, but I expect my solution will come by breaking up the builders by features.. So, instead of having a single TableBuilder, there would be a SortableTableBuilder, and an InformationalTableBuilder, and a MultiSelectTableBuilder, etc.. not sure how that would play out, but that's what I'm thinking might resolve some of the annoyances mentioned above.
 
 And, as always, you can create your own builder by extending one of the existing ones, or by creating one from scratch.
 
@@ -240,7 +240,7 @@ Then just specify your builder, or do it as a configuration.
 
 <pre>
   Listalicious::SemanticListHelper.builder = MyCustomBuilder
-<pre>
+</pre>
 
 h2. Documentation
 
