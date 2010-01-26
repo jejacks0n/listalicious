@@ -12,6 +12,12 @@ module Listalicious
 
     def render(options, &proc); end
 
+
+
+
+
+
+
     def sortable_link(contents, field)
       sort_url, sort_direction = sortable_params(field)
       template.content_tag(:a, contents, :href => "?#{sort_url}", :class => "sort-#{sort_direction == 'descending' ? 'ascending' : 'descending'}")

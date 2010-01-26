@@ -32,23 +32,21 @@ module Listalicious
 
     def column_group(scope, options = {}, &proc)
       @current_scope = scope
-
       options[:html] ||= {}
-
       self.send("column_group_#{scope}", options, &proc)
     end
 
     def column_group_head(options = {}, &proc)
-      @column_count = 0
-      
+      @column_count = 0      
       @head_wrapper = template.content_tag(:tr, template.capture(collection.first, 0, &proc),
                          options[:html].merge({:class => template.add_class(options[:html][:class], 'header')}))
       template.content_tag(:thead, @head_wrapper, options.delete(:wrapper_html))
     end
 
     def column_group_body(options = {}, &proc)
-      buffer = ''
       return unless collection.first.present?
+
+      buffer = ''
       collection.each_with_index do |record, index|
         @column_count = 0
         
@@ -57,11 +55,11 @@ module Listalicious
           @last_row_grouping = record[@options[:grouped_by]]
         end
 
-        @cycle = template.cycle('even', 'odd');
+        cycle = template.cycle('even', 'odd');
         buffer << template.content_tag(:tr, template.capture(record, index, &proc),
-                     options[:html].merge({:class => template.add_class(options[:html][:class], @cycle)}))
+                     options[:html].merge({:class => template.add_class(options[:html][:class], cycle)}))
         buffer << template.content_tag(:tr, @extra,
-                     options[:html].merge({:class => template.add_class(options[:html][:class], @cycle)})) if @extra.present?
+                     options[:html].merge({:class => template.add_class(options[:html][:class], cycle)})) if @extra.present?
         @extra = nil
       end
       template.content_tag(:tbody, buffer, options.delete(:wrapper_html))

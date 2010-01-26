@@ -20,15 +20,15 @@ module Listalicious #:nodoc:
 
       options[:html] ||= {}
       options[:html][:class] = add_class(options[:html][:class], 'semantic-list')
-      options[:html][:id] ||= collection.first ? "#{collection.first.class.name.underscore}_list" : 'semantic_list'
-
-      options[:html][:class] = add_class(options[:html][:class], 'actionable') if options[:actionable]
-      options[:html][:class] = add_class(options[:html][:class], 'selectable') if options[:selectable]
+      options[:html][:id] ||= "#{options[:as] || collection.first ? collection.first.class.name.underscore : 'semantic'}_list"
 
       if options[:sort_url]
         options[:html][:class] = add_class(options[:html][:class], 'sortable')
         options[:html]['data-sorturl'] = url_for(options[:sort_url])
       end
+
+      options[:html][:class] = add_class(options[:html][:class], 'selectable') if options[:selectable]
+      options[:html][:class] = add_class(options[:html][:class], 'expandable') if options[:expandable]
 
       builder = options[:builder] || TableBuilder
       builder.new(@template, collection, options, &proc)
