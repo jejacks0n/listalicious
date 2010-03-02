@@ -4,9 +4,7 @@ Semantic listing; a semantic way to build datagrid structures in Rails.
 
 h2. The Story
 
-Ok, so I really liked what came of my navigasmic gem, and it's proved itself useful and flexible.  I'm also working on unifying some aspects of a CMS and decided that datagrids should be unified to some degree so I can simplify the generators, make broad changes if I need to, and have a potentially more efficient way to create them.
-
-So I started this project to do just that.  I quickly learned that datagrids aren't especially easy to make amazing, and there's a lot of things that one might want to do with them... grouping (with a row that creates a separator), sorting, ordering, additional informational rows, footers, ajax pagination, etc. etc. etc.. The list is actually pretty long, and I wrote a lot of those things, but it's nowhere near perfect.  I sort of don't think it's possible with how I've approached it this time around.  Anyhow, I thought I could get something to a point that simplified the datagrid process, and I believe I've succeeded in providing a good start.  I opted out of adding several features for the time being until I need them -- at which point I might have a better understanding of how I could approach it better.  I cover some of my thoughts below in this document.
+I started this project to create a pretty simple and clean way to create datagrids.  I quickly learned that datagrids aren't especially easy to make amazing, and there's a lot of things that one might want to do with them... grouping (with a row that creates a separator), sorting, ordering, additional informational rows, footers, ajax pagination, etc. etc. etc.. The list is actually pretty long, but I've only written a few of those things.  This is a good start, and if it doesn't contain the features you're looking for feel free to fork and add them.
 
 So, as always, I set up some requirements for what the project should do, and here's what I came up with (a lot of these are standard):
 
@@ -22,13 +20,13 @@ So, as always, I set up some requirements for what the project should do, and he
 I wrote a DSL that met those requirements:
 
 <pre>
-  <% semantic_list_for @users do |l| %>
+  <% semantic_list_for @users, :as => :user do |l| %>
     <%= l.head do %>
-      <%= l.column 'Name', :sort => 'last_name' %>
-      <%= l.column 'Email Address' %>
+      <%= l.column 'User Login' %>
+      <%= l.column 'Email' %>
     <% end %>
     <%= l.columns do |user, index| %>
-      <%= l.column "#{user.first_name} #{user.last_name}" %>
+      <%= l.column :login %>
       <%= l.column link_to(user.email, "mailto:#{user.email}") %>
       <%= l.controls link_to('edit', edit_user_path(user)) %>
     <% end %>
@@ -38,13 +36,14 @@ I wrote a DSL that met those requirements:
   <% end %>
 </pre>
 
-I liked this, but could it be reduced further if the use case allowed?  I came up with the following.
+I liked this, but could it be reduced further if the use case allowed?  I came up with the following (which outlines the different ways you can pass args)
 
 <pre>
   <% semantic_list_for @users, :as => :user do |l| %>
     <%= l.columns [:head, :body] do |user, index| %>
-      <%= l.column :login %>
-      <%= l.column :email, :title => 'Email Address' %>
+      <%= l.column :login, :title => 'User Login' %>
+      <%= l.column "#{user.first_name} #{user.last_name}", :title => 'Name' %>
+      <%= l.column :email, { link_to user.email, "mailto:#{user.email}" } %>
       <%= l.controls link_to('edit', edit_user_path(user)) %>
     <% end %>
   <% end %>
@@ -52,7 +51,7 @@ I liked this, but could it be reduced further if the use case allowed?  I came u
 
 I implemented both DSLs and leave it to your discretion on which one is best to use in your case.
 
-Since using builders on previous projects has worked out fairly well, I ventured down that path again.  There's a single builder provided for now, TableBuilder (which inherits from GenericBuilder).  GenericBuilder provides some basic functionality (ordering links for example), and isn't intended to be used as a builder by itself.  And of course, the builders can always be extended or replaced if you need more custom markup.
+Since using builders on previous projects has worked out fairly well, I tried the same thing here.  There's a single builder provided for now, TableBuilder (which inherits from GenericBuilder).  GenericBuilder provides some basic functionality (ordering links for example), and isn't intended to be used as a builder by itself.  And as always, the builders can be extended or replaced if you need more custom markup.
 
 h2. Installation
 
@@ -70,22 +69,25 @@ Then install the listalicious gem:
 
 h2. Usage
 
-Listalicious works fine just as a view helper, but it also handles ordering of the lists as well.  If you plan on using ordering in the lists you'll have to add a bit to the model and controller.  All of the methods are added to the model.  Use sortable_fields to set which fields are order-able, and the :order option on finders can be generated by using sort_order_from in the controller.
-
-h3. Models
-
-<pre>
-  class User < ActiveRecord::Base
-    sortable_fields :first_name, :last_name, :login, :email, :default => :login
-  end
-</pre>
+Listalicious works fine as a simple view helper, but it also handles ordering of the lists as well.  To add ordering to any list just use the order_from named scope with your find method.  You can also specify fields that are allowed to be ordered in your model by using the orderable_fields method.
 
 h3. Controllers
 
 <pre>
   def index
-    @users = User.paginate :page => params[:page], :per_page => 2, :order => User.sort_order_from(params)
+    @user = User.ordered_from(params).paginate :page => params[:page], :per_page => 20
     # respond ...
+  end
+</pre>
+
+h3. Models
+
+<pre>
+  class User < ActiveRecord::Base
+    orderable_fields do
+      only :first_name, :last_name, :login, :email
+      default :login, :desc, :stable => true
+    end
   end
 </pre>
 
@@ -120,7 +122,7 @@ It's important to note that all the methods take blocks or content strings.  For
         <td class="controls"><a href="/users/1/edit">edit</a></td>
       </tr>
       <tr class="even">
-        <td colspan="2">You can add more information about Jeremy here.</td>
+        <td colspan="3">You can add more information about Jeremy here.</td>
       </tr>
       <tr class="odd">
         <td>user1</td>
@@ -128,7 +130,7 @@ It's important to note that all the methods take blocks or content strings.  For
         <td class="controls"><a href="/users/2/edit">edit</a></td>
       </tr>
       <tr class="odd">
-        <td colspan="2">You can add more information about User here.</td>
+        <td colspan="3">You can add more information about User here.</td>
       </tr>
     </tbody>
   </table>
@@ -154,7 +156,7 @@ It's important to note that all the methods take blocks or content strings.  For
   <table class="semantic-list" id="user_list">
     <thead>
       <tr class="header">
-        <th width="20%"><a class="sort-ascending" href="?user_sort_asc=last_name">Name</a></th>
+        <th width="20%"><a class="sort-ascending" href="?user_sort_desc=last_name">Name</a></th>
         <th>Email Address</th>
       </tr>
     </thead>
@@ -183,38 +185,38 @@ It's important to note that all the methods take blocks or content strings.  For
 *Grouping* -- You can group lists, and this will add extra header rows as separators.  This will include sort links if those were provided as well.
 
 <pre>
-  - semantic_list_for @users, :group_by => :login do |l|
+  - semantic_list_for @users, :as => :user, :group_by => :login do |l|
 </pre>
 
 *Sorting* -- Sorting requires javascript.  It's part of the javascript code that comes with Listalicious and requires Prototype.js.  If you want to add sorting to the list, just provide a url for a sort action and it will put that into the HTML5 data-sorturl attribute.  You can use your own javascript if you would like.
 
 <pre>
-  - semantic_list_for @users, :sort_url => { :action => 'sort' } do |l|
+  - semantic_list_for @users, :as => :user, :sort_url => { :action => 'sort' } do |l|
 </pre>
 
-*Additional JS Functionality* -- There a few functions that are javascript specific.  You can add any additional functionality this way as well, since we're using unobtrusive JS to get the following features accomplished.
+*Additional JS Functionality* -- There a few functions that are javascript specific.  You can add any additional functionality this way as well since we're using unobtrusive JS to get the following features accomplished.
 
 You can make the list multi-selectable.  There isn't any pre-bundled functionality to do actions on the selected items, but you can fetch the list of selected items by using JS.
 
+TODO: Document usage here
+
 <pre>
-  - semantic_list_for @users, :selectable => true do |l|
+  - semantic_list_for @users, :as => :user, :selectable => true do |l|
 </pre>
 
 You can make the "extra" information rows expandable.  If you add this, the extra rows won't show unless the row they belong to is highlighted.
 
 <pre>
-  - semantic_list_for @users, :expandable => true do |l|
+  - semantic_list_for @users, :as => :user, :expandable => true do |l|
 </pre>
 
 h3. UL / OL Datagrids
 
-The nature of doing a UL / OL based datagrid requires a certain level of CSS, and I haven't had time or reason to provide that level yet.  When I finish up this project and include the JS and CSS needed for it (in a generator) I may add a builder for this, but there isn't one currently.
+The nature of doing a UL / OL based datagrid requires a certain level of CSS, and I haven't had time or reason to provide that level yet.  When I finish up this project and include the JS and CSS needed for it (in a generator) I may add a builder for this, but there isn't plans for one currently.
 
 h3. Other
 
 It's important to note that a lot of the functionality of these lists do not play nicely with one another -- I don't believe this is a shortcoming, and consider it more an effort to avoid overkill.  A good example of this is the sortable features.  For example, if you need the extra information and sorting together, you should consider using the :expandable => true option.  Grouping and sorting don't play together nicely for obvious reasons as well.  The javascript handles moving the extra container, in sorting, but doesn't attempt to do it gracefully.  If I do the ListBuilder (UL/OL) to compliment the TableBuilder, it would likely handle these things somewhat better, but I haven't had a need for it yet.
-
-I'm kicking around plans for how to make it more featureful without the annoying conflicts mentioned above.  If you have any thoughts let me know, but I expect my solution will come by breaking up the builders by features.. So, instead of having a single TableBuilder, there would be a SortableTableBuilder, and an InformationalTableBuilder, and a MultiSelectTableBuilder, etc.. not sure how that would play out, but that's what I'm thinking might resolve some of the annoyances mentioned above.
 
 And, as always, you can create your own builder by extending one of the existing ones, or by creating one from scratch.
 
@@ -232,11 +234,7 @@ h2. Documentation
 
 RDoc documentation _should_ be automatically generated after each commit and made available on the "rdoc.info website":http://rdoc.info/projects/jejacks0n/listalicious.
 
-Documentation is pretty sparse right now.
-
-h2. Compatibility
-
-I'm only testing with the latest Rails 2.4.x stable release, and it should work under Rails 2.3.x as well.  Feel free to add backwards compatibility if you need it.
+Documentation is pretty sparse right now, and I'm working to resolve it.
 
 h2. Project Info
 

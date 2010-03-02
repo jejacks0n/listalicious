@@ -1,6 +1,6 @@
 # coding: utf-8
-require File.join(File.dirname(__FILE__), *%w[builders generic_builder])
-require File.join(File.dirname(__FILE__), *%w[builders table_builder])
+require 'builders/generic_builder'
+require 'builders/table_builder'
 
 module Listalicious #:nodoc:
 
@@ -13,10 +13,10 @@ module Listalicious #:nodoc:
     @@builder = ::Listalicious::TableBuilder
     mattr_accessor :builder
 
-    def semantic_list_for(collection, *args, &proc)
+    def semantic_list_for(collection, options, &proc)
       raise ArgumentError, "Missing block" unless block_given?
 
-      options = args.extract_options!
+      # TODO: should :as be required?
 
       options[:html] ||= {}
       options[:html][:class] = add_class(options[:html][:class], 'semantic-list')
@@ -43,35 +43,105 @@ module Listalicious #:nodoc:
 
   module ActiveRecordExtensions # :nodoc:
 
-    def self.included(base) # :nodoc:
-      return if base.kind_of?(::Listalicious::ActiveRecordExtensions::ClassMethods)
-      base.class_eval do
-        extend ClassMethods
-      end
+    # Makes a given model orderable for lists
+    #
+    # To specify that a model behaves according to the Listalicious order style call orderable_fields.  The
+    # orderable_fields method takes a configuration block.
+    #
+    # === Example
+    # orderable_fields do
+    #   only :first_name, :last_name
+    #   default :last_name
+    # end
+    #
+    # === Configuration Methods
+    # [only]
+    #   Provide fields that are orderable.
+    # [except]
+    #   Provide fields that are not orderable, with the default list being all fields.
+    # [default]
+    #   Provide the default sort field, optionally a direction, and additional options.
+    #
+    # *Notes*:
+    # * If +only+ or +except+ are not called within the block, all fields on the model will be orderable, this includes
+    #   things like id, and password/password salt columns.
+    # * If +default+ isn't called, the first field will be considered the default, asc being the default direction.
+    #
+    def orderable_fields(&config_block)
+      cattr_accessor :orderable_fields, :default_order
+
+      # make all columns orderable, incase only or except aren't called in the configuration block
+      self.orderable_fields = column_names.map { |column_name| column_name.to_s }
+
+      instance_eval(&config_block)
+      self.orderable_fields.collect!{ |field| field.to_s }
+
+      self.default_order ||= {:field => self.orderable_fields.first, :direction => :desc}
+      
+      attach_orderable_scopes
     end
 
-    module ClassMethods
+    # Provide fields that are orderable in the configuration block.
+    #
+    # *Note*: If +only+ or +except+ aren't called from within the configuration block, all fields will be orderable.
+    #
+    # === Example
+    # only :last_name, :email_address
+    def only(*args)
+      self.orderable_fields = args
+    end
 
-      attr_accessor :default_sort_field
+    # Provide fields that are not to be orderable, with the default list being all fields.
+    #
+    # *Note*: If +only+ or +except+ aren't called from within the configuration block, all fields will be orderable.
+    #
+    # === Example
+    # * except :id, :password
+    def except(*args)
+      self.orderable_fields - args
+    end
 
-      def sortable_fields(*args)
-        options = args.extract_options!
-        @acceptable_sort_fields = args
-        @default_sort_field = options[:default]
-      end
+    # Provide the default sort field, optionally a direction, and additional options.
+    #
+    # === Supported options
+    # [:stable]
+    #   Will force appending the default sort to the end of all sort requests.  Default is false.
+    #
+    # === Example
+    #   default :first_name (direction defaults to :asc)
+    #   default :first_name, :stable => true
+    #   default :first_name, :desc, :stable => true
+    def default(*args)
+      options = args.extract_options!
+      field = args.shift
+      direction = args.shift || :asc
 
-      def acceptable_sort_field?(column)
-        column.present? ? @acceptable_sort_fields.include?(column.to_sym) : false
-      end
+      self.default_order = {:field => field, :direction => direction, :options => options}
+    end
 
-      def sort_order_from(params)
-        field = params["#{self.name.underscore}_sort_asc"] || params["#{self.name.underscore}_sort_desc"]
-        field = @default_sort_field.to_s unless acceptable_sort_field?(field)
+    # Attaches the ordered_from named scope to the model requesting it.  The named scope can be chained in the
+    # controller by using:
+    #
+    # +Users.ordered_by(params).paginate :page => params[:page], :per_page => 2+
+    #
+    # The params are expected to be in a specific style:
+    #
+    # eg. order[table_name][]=last_name:desc&order[table_name][]=first_name:asc
+    #
+    # Which will generate the order clause +"last_name DESC, first_name ASC"+.
+    def attach_orderable_scopes
+      self.named_scope :ordered_from, lambda { |params|
+        return unless params.include?(:order) and params[:order][self.table_name.to_sym]
 
-        method = (params["#{self.name.underscore}_sort_desc".to_sym] == field) ? 'DESC' : 'ASC'
-        "#{field} #{method}" unless field.blank?
-      end
+        fields = params[:order][self.table_name.to_sym].collect do |field_and_dir|
+          field, dir = field_and_dir.split(':')
+          self.orderable_fields.include?(field) ? [field, dir.to_s.downcase] : nil
+        end.compact
 
+        fields.empty? ?
+          nil :
+          {:order => fields.map{ |field, dir| "#{field} #{dir.downcase == 'desc' ? 'DESC' : 'ASC'}" }.join(', ')}
+      }
     end
 
   end
@@ -79,4 +149,4 @@ module Listalicious #:nodoc:
 end
 
 ActionController::Base.helper Listalicious::SemanticListHelper
-ActiveRecord::Base.class_eval { include ::Listalicious::ActiveRecordExtensions }
+ActiveRecord::Base.extend Listalicious::ActiveRecordExtensions

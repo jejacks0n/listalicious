@@ -32,34 +32,37 @@ module Listalicious
 
     def column_group(scope, options = {}, &proc)
       @current_scope = scope
+
       options[:html] ||= {}
+
       self.send("column_group_#{scope}", options, &proc)
     end
 
     def column_group_head(options = {}, &proc)
-      @column_count = 0      
+      @column_count = 0
+
       @head_wrapper = template.content_tag(:tr, template.capture(collection.first, 0, &proc),
                          options[:html].merge({:class => template.add_class(options[:html][:class], 'header')}))
       template.content_tag(:thead, @head_wrapper, options.delete(:wrapper_html))
     end
 
     def column_group_body(options = {}, &proc)
-      return unless collection.first.present?
-
       buffer = ''
+      return unless collection.first.present?
       collection.each_with_index do |record, index|
         @column_count = 0
-        
+        @object = record
+
         if @options[:grouped_by]
           buffer << @head_wrapper if record[@options[:grouped_by]] != @last_row_grouping
           @last_row_grouping = record[@options[:grouped_by]]
         end
 
-        cycle = template.cycle('even', 'odd');
+        @cycle = template.cycle('even', 'odd');
         buffer << template.content_tag(:tr, template.capture(record, index, &proc),
-                     options[:html].merge({:class => template.add_class(options[:html][:class], cycle)}))
+                     options[:html].merge({:class => template.add_class(options[:html][:class], @cycle)}))
         buffer << template.content_tag(:tr, @extra,
-                     options[:html].merge({:class => template.add_class(options[:html][:class], cycle)})) if @extra.present?
+                     options[:html].merge({:class => template.add_class(options[:html][:class], [@cycle, 'extra'])})) if @extra.present?
         @extra = nil
       end
       template.content_tag(:tbody, buffer, options.delete(:wrapper_html))
@@ -91,9 +94,6 @@ module Listalicious
       options[:html] ||= {}
       options[:html][:colspan] ||= @column_count
 
-      options[:wrapper_html] ||= {}
-      options[:wrapper_html][:class] = template.add_class(options[:wrapper_html][:class], 'full-column')
-
       @extra = self.send("#{@current_scope}_column", contents, options)
     end
 
@@ -116,9 +116,6 @@ module Listalicious
       options[:html] ||= {}
       options[:html][:colspan] ||= @column_count
 
-      options[:wrapper_html] ||= {}
-      options[:wrapper_html][:class] = template.add_class(options[:wrapper_html][:class], 'extra')
-
       @extra = self.send("#{@current_scope}_column", contents, options)
       ''
     end
@@ -126,21 +123,24 @@ module Listalicious
     def head_column(contents, options = {})
       options[:html] ||= {}
       options[:html][:width] ||= options[:width]
-      
-      contents = sortable_link(contents, options[:sort]) if options[:sort]
+
+      contents = contents.to_s.humanize.titleize if contents.is_a? Symbol
+      contents = orderable_link(contents, options[:sort]) if options[:sort]
 
       template.content_tag(:th, contents, options.delete(:html))
     end
 
     def body_column(contents, options = {})
+      contents = @object.send(contents) if @object && contents.is_a?(Symbol)
+
       template.content_tag(:td, contents, options.delete(:html))
     end
 
     def foot_column(contents, options = {})
-      contents = sortable_link(contents, options[:sort]) if options[:sort]
+      contents = orderable_link(contents, options[:sort]) if options[:sort]
 
       template.content_tag(:th, contents, options.delete(:html))
     end
-    
+
   end
 end
