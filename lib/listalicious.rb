@@ -43,6 +43,50 @@ module Listalicious #:nodoc:
 
   module ActiveRecordExtensions # :nodoc:
 
+    class OrderableConfiguration
+      def initialize(target)
+        @target = target
+      end
+
+      # Provide fields that are orderable in the configuration block.
+      #
+      # *Note*: If +only+ or +except+ aren't called from within the configuration block, all fields will be orderable.
+      #
+      # === Example
+      #   only :last_name, :email_address
+      def only(*args)
+        @target.orderable_fields = args
+      end
+
+      # Provide fields that are not to be orderable, with the default list being all fields.
+      #
+      # *Note*: If +only+ or +except+ aren't called from within the configuration block, all fields will be orderable.
+      #
+      # === Example
+      #   except :id, :password
+      def except(*args)
+        @target.orderable_fields - args
+      end
+
+      # Provide the default sort field, optionally a direction, and additional options.
+      #
+      # === Supported options
+      # [:stable]
+      #   Will force appending the default sort to the end of all sort requests.  Default is false.
+      #
+      # === Example
+      #   default :first_name (direction defaults to :asc)
+      #   default :first_name, :stable => true
+      #   default :first_name, :desc, :stable => true
+      def default(*args)
+        options = args.extract_options!
+        field = args.shift
+        direction = args.shift || :asc
+
+        @target.default_order = {:field => field, :direction => direction, :options => options}
+      end
+    end
+
     # Makes a given model orderable for lists
     #
     # To specify that a model behaves according to the Listalicious order style call orderable_fields.  The
@@ -73,7 +117,7 @@ module Listalicious #:nodoc:
       # make all columns orderable, incase only or except aren't called in the configuration block
       self.orderable_fields = column_names.map { |column_name| column_name.to_s }
 
-      instance_eval(&config_block)
+      OrderableConfiguration.new(self).instance_eval(&config_block)
       self.orderable_fields.collect!{ |field| field.to_s }
 
       self.default_order ||= {:field => self.orderable_fields.first, :direction => :desc}
@@ -81,48 +125,10 @@ module Listalicious #:nodoc:
       attach_orderable_scopes
     end
 
-    # Provide fields that are orderable in the configuration block.
-    #
-    # *Note*: If +only+ or +except+ aren't called from within the configuration block, all fields will be orderable.
-    #
-    # === Example
-    # only :last_name, :email_address
-    def only(*args)
-      self.orderable_fields = args
-    end
-
-    # Provide fields that are not to be orderable, with the default list being all fields.
-    #
-    # *Note*: If +only+ or +except+ aren't called from within the configuration block, all fields will be orderable.
-    #
-    # === Example
-    # * except :id, :password
-    def except(*args)
-      self.orderable_fields - args
-    end
-
-    # Provide the default sort field, optionally a direction, and additional options.
-    #
-    # === Supported options
-    # [:stable]
-    #   Will force appending the default sort to the end of all sort requests.  Default is false.
-    #
-    # === Example
-    #   default :first_name (direction defaults to :asc)
-    #   default :first_name, :stable => true
-    #   default :first_name, :desc, :stable => true
-    def default(*args)
-      options = args.extract_options!
-      field = args.shift
-      direction = args.shift || :asc
-
-      self.default_order = {:field => field, :direction => direction, :options => options}
-    end
-
     # Attaches the ordered_from named scope to the model requesting it.  The named scope can be chained in the
     # controller by using:
     #
-    # +Users.ordered_by(params).paginate :page => params[:page], :per_page => 2+
+    # +Users.ordered_from(params).paginate :page => params[:page], :per_page => 2+
     #
     # The params are expected to be in a specific style:
     #
