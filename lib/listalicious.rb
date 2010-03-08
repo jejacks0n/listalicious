@@ -30,7 +30,7 @@ module Listalicious #:nodoc:
       options[:html][:class] = add_class(options[:html][:class], 'selectable') if options[:selectable]
       options[:html][:class] = add_class(options[:html][:class], 'expandable') if options[:expandable]
 
-      builder = options[:builder] || TableBuilder
+      builder = options[:builder] || @@builder
       builder.new(@template, collection, options, &proc)
     end
 
