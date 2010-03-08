@@ -36,15 +36,17 @@ I wrote a DSL that met those requirements:
   <% end %>
 </pre>
 
-I liked this, but could it be reduced further if the use case allowed?  I came up with the following (which outlines the different ways you can pass args)
+I liked this, but could it be reduced further if the use case allowed?  I came up with the following with help from a co-worker (which outlines the different ways you can pass args)
 
 <pre>
   <% semantic_list_for @users, :as => :user do |l| %>
     <%= l.columns [:head, :body] do |user, index| %>
-      <%= l.column :login, :title => 'User Login' %>
+      <%= l.column :login, :width => '20%' %>
       <%= l.column "#{user.first_name} #{user.last_name}", :title => 'Name' %>
-      <%= l.column :email, { link_to user.email, "mailto:#{user.email}" } %>
-      <%= l.controls link_to('edit', edit_user_path(user)) %>
+      <%= l.column :email, proc { link_to user.email, "mailto:#{user.email}" } %>
+      <%= l.controls do %>
+        <%= link_to('edit', edit_user_path(user)) %>
+      <% end %>
     <% end %>
   <% end %>
 </pre>
@@ -69,7 +71,7 @@ Then install the listalicious gem:
 
 h2. Usage
 
-Listalicious works fine as a simple view helper, but it also handles ordering of the lists as well.  To add ordering to any list just use the order_from named scope with your find method.  You can also specify fields that are allowed to be ordered in your model by using the orderable_fields method.
+Listalicious works fine as a simple view helper, but it also handles ordering of the lists as well.  To add ordering to any list just use the ordered_from named scope with your find method.  You can also specify fields that are allowed to be ordered in your model by using the orderable_fields method.
 
 h3. Controllers
 
@@ -92,7 +94,7 @@ h3. Models
 </pre>
 
 h3. Views (I prefer HAML, so no ERB examples, but it should work with ERB fine as well)
-  
+
 It's important to note that all the methods take blocks or content strings.  For instance, look at the extra and controls methods in the simple usage example.
 
 *Simple Usage*
@@ -156,7 +158,7 @@ It's important to note that all the methods take blocks or content strings.  For
   <table class="semantic-list" id="user_list">
     <thead>
       <tr class="header">
-        <th width="20%"><a class="sort-ascending" href="?user_sort_desc=last_name">Name</a></th>
+        <th width="20%"><a class="ascending" href="?!sort_query!">Name</a></th>
         <th>Email Address</th>
       </tr>
     </thead>
@@ -188,26 +190,10 @@ It's important to note that all the methods take blocks or content strings.  For
   - semantic_list_for @users, :as => :user, :group_by => :login do |l|
 </pre>
 
-*Sorting* -- Sorting requires javascript.  It's part of the javascript code that comes with Listalicious and requires Prototype.js.  If you want to add sorting to the list, just provide a url for a sort action and it will put that into the HTML5 data-sorturl attribute.  You can use your own javascript if you would like.
+*Sorting* -- Sorting requires javascript.  It's part of the javascript code that comes with Listalicious and requires Prototype.js.  If you want to add sorting to the list, just provide a url for a sort action and it will put that into the HTML5 data-sorturl attribute.  You can use your own javascript if you would like.  This feature is incomplete.
 
 <pre>
   - semantic_list_for @users, :as => :user, :sort_url => { :action => 'sort' } do |l|
-</pre>
-
-*Additional JS Functionality* -- There a few functions that are javascript specific.  You can add any additional functionality this way as well since we're using unobtrusive JS to get the following features accomplished.
-
-You can make the list multi-selectable.  There isn't any pre-bundled functionality to do actions on the selected items, but you can fetch the list of selected items by using JS.
-
-TODO: Document usage here
-
-<pre>
-  - semantic_list_for @users, :as => :user, :selectable => true do |l|
-</pre>
-
-You can make the "extra" information rows expandable.  If you add this, the extra rows won't show unless the row they belong to is highlighted.
-
-<pre>
-  - semantic_list_for @users, :as => :user, :expandable => true do |l|
 </pre>
 
 h3. UL / OL Datagrids
