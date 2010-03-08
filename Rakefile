@@ -5,7 +5,7 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
     gem.name = "listalicious"
-    gem.summary = %Q{Semantic lists (datagrids) for Rails}
+    gem.summary = %Q{Semantic lists (aka datagrids) for Rails}
     gem.description = %Q{Semantic listing; a semantic way to build datagrid structures in Rails.}
     gem.email = "jejacks0n@gmail.com"
     gem.homepage = "http://github.com/jejacks0n/listalicious"

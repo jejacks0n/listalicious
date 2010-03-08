@@ -34,7 +34,7 @@ Gem::Specification.new do |s|
   s.rdoc_options = ["--charset=UTF-8"]
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.5}
-  s.summary = %q{Semantic lists (datagrids) for Rails}
+  s.summary = %q{Semantic lists (aka datagrids) for Rails}
   s.test_files = [
     "test/helper.rb",
      "test/test_listalicious.rb"
