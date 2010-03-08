@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Jeremy Jackson"]
-  s.date = %q{2010-03-04}
+  s.date = %q{2010-03-08}
   s.description = %q{Semantic listing; a semantic way to build datagrid structures in Rails.}
   s.email = %q{jejacks0n@gmail.com}
   s.extra_rdoc_files = [
