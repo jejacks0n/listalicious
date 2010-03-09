@@ -41,7 +41,7 @@ module Listalicious
     def column_group_head(options = {}, &proc)
       @column_count = 0
 
-      @head_wrapper = template.content_tag(:tr, template.capture(collection.first, 0, &proc),
+      @head_wrapper = template.content_tag(:tr, template.capture(collection.first || @object, 0, &proc),
                          options[:html].merge({:class => template.add_class(options[:html][:class], 'header')}))
       template.content_tag(:thead, @head_wrapper, options.delete(:wrapper_html))
     end
@@ -78,7 +78,13 @@ module Listalicious
       contents = options == args.first ? nil : args.first
 
       if @current_scope == :body
-        contents = template.capture(self, &proc) if block_given? && collection.first.present?
+        contents = if block_given?
+          template.capture(self, &proc)
+        elsif args.last.is_a?(Proc)
+          args.last.call
+        else
+          contents
+        end
       else
         contents = options[:title] || contents
       end
@@ -124,7 +130,8 @@ module Listalicious
       options[:html] ||= {}
       options[:html][:width] ||= options[:width]
 
-      contents = contents.to_s.humanize.titleize if contents.is_a? Symbol
+      options[:sort] ||= contents.is_a?(Symbol) ? contents : nil
+      contents = contents.to_s.humanize.titleize
       contents = orderable_link(contents, options[:sort]) if options[:sort]
 
       template.content_tag(:th, contents, options.delete(:html))
